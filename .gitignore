@@ -77,3 +77,8 @@ supabase_scehma.sql
 supabase_*.sql
 
 
+
+# Admin folder/files
+/admin/
+admin/
+
