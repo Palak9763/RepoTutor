@@ -70,4 +70,10 @@ dist-ssr/
 /frontend/.env
 /frontend/**/.env
 
+# Supabase schema files (ignore exported DB schema files)
+supabase_schema.sql
+supabase_schema_phase2.sql
+supabase_scehma.sql
+supabase_*.sql
+
 
