@@ -1,6 +1,13 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import repositories
+from app.routes import repositories, parsing
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 
 app = FastAPI(title="RepoTutor API")
 
@@ -13,6 +20,7 @@ app.add_middleware(
 )
 
 app.include_router(repositories.router, prefix="/api/repositories", tags=["Repositories"])
+app.include_router(parsing.router, prefix="/api/repositories", tags=["Parsing"])
 
 @app.get("/")
 def read_root():

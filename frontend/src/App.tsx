@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import AuthPage from './components/AuthPage';
 import Dashboard from './components/Dashboard';
 import { supabase } from './lib/supabase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Code2 } from 'lucide-react';
 
 function App() {
   const [session, setSession] = useState<any>(null);
@@ -25,8 +25,13 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Code2 className="w-6 h-6 text-white" />
+          </div>
+          <Loader2 className="w-6 h-6 animate-spin text-indigo-400 mx-auto" />
+        </div>
       </div>
     );
   }
