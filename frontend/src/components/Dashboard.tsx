@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { api, ParseStatus, CodeStats, CommitWeek } from '../lib/api';
+import { api } from '../lib/api';
+import type { ParseStatus, CodeStats, CommitWeek } from '../lib/api';
 import {
   Plus, GitBranch, LogOut, Loader2, Activity, Code2, Star, GitFork,
   Users, Cpu, FolderTree, Zap, Box, FileCode2, RefreshCw,
