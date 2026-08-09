@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from app.routes import repositories, parsing, projects, jobs, chats
+from app.routes import repositories, parsing, projects, jobs, chats, intelligence
 
 # Configure logging
 logging.basicConfig(
@@ -70,6 +70,7 @@ def health_check():
 app.include_router(projects.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(jobs.router, prefix="/api/jobs", tags=["Jobs"])
 app.include_router(chats.router, prefix="/api", tags=["Chats"])
+app.include_router(intelligence.router, prefix="/api/projects", tags=["Intelligence"])
 
 # Mount legacy/phase 2 routes
 app.include_router(repositories.router, prefix="/api/repositories", tags=["Repositories"])

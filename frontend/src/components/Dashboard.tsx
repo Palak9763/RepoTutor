@@ -6,7 +6,7 @@ import type { ParseStatus, CodeStats, CommitWeek } from '../lib/api';
 import {
   Plus, GitBranch, LogOut, Loader2, Activity, Code2, Star, GitFork,
   Users, Cpu, FolderTree, Zap, Box, FileCode2, RefreshCw,
-  CheckCircle2, AlertCircle, GitCommit, Terminal, Eye, Trash2, Search, BarChart2, Bot
+  CheckCircle2, AlertCircle, GitCommit, Terminal, Eye, Trash2, Search, BarChart2, Bot, Network, BookOpen
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -479,6 +479,40 @@ function RepoCard({
           onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#f5f3ff'; }}
         >
           <Bot size={13} /> Ask AI Tutor
+        </button>
+
+        <button
+          onClick={() => navigate(`/projects/${projectId}/architecture`)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '7px 14px',
+            background: 'white', color: '#059669',
+            border: '1px solid #a7f3d0', borderRadius: 8,
+            fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', transition: 'all 0.15s',
+            fontFamily: 'inherit',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#ecfdf5'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'white'; }}
+        >
+          <Network size={13} /> Architecture
+        </button>
+
+        <button
+          onClick={() => navigate(`/projects/${projectId}/reports`)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '7px 14px',
+            background: 'white', color: '#d97706',
+            border: '1px solid #fde68a', borderRadius: 8,
+            fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', transition: 'all 0.15s',
+            fontFamily: 'inherit',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#fffbeb'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'white'; }}
+        >
+          <BookOpen size={13} /> Reports
         </button>
 
         {isParsed && (
