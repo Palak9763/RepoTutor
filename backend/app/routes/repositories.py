@@ -2,6 +2,8 @@ import httpx
 from fastapi import APIRouter, HTTPException, Depends, Header
 from app.schemas.repositories import RepositoryCreate
 from app.db import supabase
+from app.services.github import fetch_github_repo_data, fetch_github_commit_activity
+from app.services.project import create_project_and_repo
 import re
 
 router = APIRouter()
@@ -29,88 +31,31 @@ async def create_repository(repo_in: RepositoryCreate, token: str = Depends(get_
     
     user_id = user_res.user.id
 
-    # 3. Fetch from GitHub API
-    async with httpx.AsyncClient() as client:
-        # Base repo info
-        gh_res = await client.get(f"https://api.github.com/repos/{owner}/{repo}")
-        if gh_res.status_code != 200:
-            raise HTTPException(status_code=400, detail="Repository not found on GitHub")
-        gh_data = gh_res.json()
-        
-        # Languages
-        lang_res = await client.get(f"https://api.github.com/repos/{owner}/{repo}/languages")
-        languages = lang_res.json() if lang_res.status_code == 200 else {}
-        
-        # Contributors (rough count)
-        contrib_res = await client.get(f"https://api.github.com/repos/{owner}/{repo}/contributors?per_page=1")
-        # To get real count without pagination, we can check link header, but let's just use a default or 0 for now if no link header
-        contributors_count = 0
-        if "link" in contrib_res.headers:
-            last_link = [l for l in contrib_res.headers["link"].split(",") if 'rel="last"' in l]
-            if last_link:
-                page_match = re.search(r"page=(\d+)", last_link[0])
-                if page_match:
-                    contributors_count = int(page_match.group(1))
-        elif contrib_res.status_code == 200:
-            contributors_count = len(contrib_res.json())
-
-        # Commit activity (weekly commit counts for the last year)
-        commit_activity = []
-        try:
-            commit_res = await client.get(
-                f"https://api.github.com/repos/{owner}/{repo}/stats/commit_activity"
-            )
-            if commit_res.status_code == 200:
-                raw = commit_res.json()
-                if isinstance(raw, list):
-                    # raw is a list of 52 weekly objects: {days: [...], total: N, week: unix_ts}
-                    # Keep last 12 weeks for the chart
-                    recent = raw[-12:] if len(raw) >= 12 else raw
-                    commit_activity = [
-                        {"week": entry.get("week", 0), "total": entry.get("total", 0)}
-                        for entry in recent
-                    ]
-            elif commit_res.status_code == 202:
-                # GitHub is computing stats — it'll be ready on next request
-                # Store empty for now; user can refresh later
-                commit_activity = []
-        except Exception:
-            commit_activity = []
-
-    # 4. Insert Project into Supabase
-    project_data = {
-        "user_id": user_id,
-        "repo_name": repo_name,
-        "github_url": url_str,
-        "status": "completed"
-    }
-    
-    # We must set the auth header for RLS to work properly, or use a service key.
-    # Currently supabase-py doesn't easily let us set auth token for a single query. 
-    # For now, we will just insert. RLS might block this if using anon key without setting auth.
-    # We will use the user's token directly by setting the session.
-    supabase.auth.set_session(access_token=token, refresh_token="")
-    
+    # 3. Check for duplicate: reject if this user already has this repo URL
     try:
-        project_insert = supabase.table("projects").insert(project_data).execute()
-        project_id = project_insert.data[0]["id"]
+        supabase.auth.set_session(access_token=token, refresh_token="")
+    except Exception:
+        pass
+    existing = supabase.table("projects").select("id").eq("user_id", user_id).eq("github_url", url_str).execute()
+    if existing.data:
+        raise HTTPException(status_code=409, detail="You have already added this repository.")
+
+    # 4. Fetch from GitHub API via service
+    try:
+        github_data = await fetch_github_repo_data(owner, repo)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
         
-        # 5. Insert Repository into Supabase
-        repo_data = {
-            "project_id": project_id,
-            "stars": gh_data.get("stargazers_count", 0),
-            "forks": gh_data.get("forks_count", 0),
-            "contributors": contributors_count,
-            "languages": languages,
-            "description": gh_data.get("description", ""),
-            "license": gh_data.get("license", {}).get("name", "") if gh_data.get("license") else "",
-            "topics": gh_data.get("topics", []),
-            "commit_activity": commit_activity,
-        }
-        
-        repo_insert = supabase.table("repositories").insert(repo_data).execute()
-        return {"project": project_insert.data[0], "repository": repo_insert.data[0]}
-        
+    # 5. Insert Project into Supabase via service
+    try:
+        project_obj, repository_obj = create_project_and_repo(
+            token=token,
+            user_id=user_id,
+            repo_name=repo_name,
+            github_url=url_str,
+            github_data=github_data
+        )
+        return {"data": {"project": project_obj, "repository": repository_obj}, "error": None}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
@@ -121,7 +66,10 @@ async def get_commit_activity(project_id: str, token: str = Depends(get_auth_tok
     Return stored commit activity for a project's repository.
     If data is stale or empty, try fetching fresh data from GitHub.
     """
-    supabase.auth.set_session(access_token=token, refresh_token="")
+    try:
+        supabase.auth.set_session(access_token=token, refresh_token="")
+    except Exception:
+        pass  # Best-effort; RLS may still work via service key
 
     # Get project and repo
     project_res = supabase.table("projects").select("*, repositories(*)").eq("id", project_id).execute()
@@ -143,24 +91,37 @@ async def get_commit_activity(project_id: str, token: str = Depends(get_auth_tok
         match = re.search(r"github\.com/([^/]+)/([^/]+?)(?:\.git)?$", url_str)
         if match:
             owner, repo_name = match.groups()
-            async with httpx.AsyncClient() as client:
-                try:
-                    res = await client.get(
-                        f"https://api.github.com/repos/{owner}/{repo_name}/stats/commit_activity"
-                    )
-                    if res.status_code == 200:
-                        raw = res.json()
-                        if isinstance(raw, list):
-                            recent = raw[-12:] if len(raw) >= 12 else raw
-                            commit_activity = [
-                                {"week": entry.get("week", 0), "total": entry.get("total", 0)}
-                                for entry in recent
-                            ]
-                            # Store for next time
-                            supabase.table("repositories").update(
-                                {"commit_activity": commit_activity}
-                            ).eq("id", repo["id"]).execute()
-                except Exception:
-                    pass
+            
+            fresh_activity = await fetch_github_commit_activity(owner, repo_name)
+            if fresh_activity:
+                commit_activity = fresh_activity
+                # Store for next time
+                supabase.table("repositories").update(
+                    {"commit_activity": commit_activity}
+                ).eq("id", repo["id"]).execute()
 
-    return {"commit_activity": commit_activity}
+    return {"data": {"commit_activity": commit_activity}, "error": None}
+
+
+@router.delete("/{project_id}")
+async def delete_project(project_id: str, token: str = Depends(get_auth_token)):
+    """
+    Delete a project and its associated repository (cascades via FK).
+    Only the owning user can delete their own projects (enforced by RLS).
+    """
+    user_res = supabase.auth.get_user(token)
+    if not user_res or not user_res.user:
+        raise HTTPException(status_code=401, detail="Invalid user token")
+
+    try:
+        supabase.auth.set_session(access_token=token, refresh_token="")
+    except Exception:
+        pass
+
+    # Verify the project belongs to this user before deleting
+    check = supabase.table("projects").select("id").eq("id", project_id).eq("user_id", user_res.user.id).execute()
+    if not check.data:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    supabase.table("projects").delete().eq("id", project_id).execute()
+    return {"data": {"deleted": True}, "error": None}
