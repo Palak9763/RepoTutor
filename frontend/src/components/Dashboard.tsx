@@ -515,6 +515,23 @@ function RepoCard({
           <BookOpen size={13} /> Reports
         </button>
 
+        <button
+          onClick={() => navigate(`/projects/${projectId}/training`)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '7px 14px',
+            background: 'white', color: '#7c3aed',
+            border: '1px solid #ddd6fe', borderRadius: 8,
+            fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', transition: 'all 0.15s',
+            fontFamily: 'inherit',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#f5f3ff'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'white'; }}
+        >
+          <Cpu size={13} /> Training
+        </button>
+
         {isParsed && (
           <button
             onClick={onViewStructure}

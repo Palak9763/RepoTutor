@@ -6,6 +6,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import ChatPage from './pages/ChatPage';
 import ArchitecturePage from './pages/ArchitecturePage';
 import ReportsPage from './pages/ReportsPage';
+import TrainingPage from './pages/TrainingPage';
 import { supabase } from './lib/supabase';
 import { Loader2, Code2 } from 'lucide-react';
 
@@ -72,6 +73,14 @@ function AppRoutes({ session, setSession }: { session: any; setSession: (s: any)
         element={
           <ProtectedRoute session={session}>
             <ReportsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/:id/training"
+        element={
+          <ProtectedRoute session={session}>
+            <TrainingPage />
           </ProtectedRoute>
         }
       />
