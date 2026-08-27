@@ -1,0 +1,67 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file: ./backend/.env
+    environment:
+      - USE_CELERY=true
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - RATE_LIMIT_REDIS_URL=redis://redis:6379/2
+      - QDRANT_URL=http://qdrant:6333
+      - VECTOR_STORE_BACKEND=qdrant
+    depends_on:
+      - redis
+      - qdrant
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  worker:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      - USE_CELERY=true
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - QDRANT_URL=http://qdrant:6333
+      - VECTOR_STORE_BACKEND=qdrant
+    depends_on:
+      - redis
+      - qdrant
+    restart: unless-stopped
+    command: celery -A app.celery_app worker --loglevel=info --pool=solo
+
+  beat:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      - redis
+    restart: unless-stopped
+    command: celery -A app.celery_app beat --loglevel=info
+
+volumes:
+  redis_data:
+  qdrant_data:
