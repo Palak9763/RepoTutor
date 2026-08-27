@@ -97,30 +97,27 @@ function ParseProgressBar({ status }: { status: ParseStatus }) {
 
 function CodeStatsCard({ stats }: { stats: CodeStats }) {
   const items = [
-    { icon: FileCode2, label: 'Files',     value: stats.total_files.toLocaleString(),     color: '#3b82f6' },
-    { icon: Box,       label: 'Classes',   value: stats.total_classes.toLocaleString(),   color: '#7c3aed' },
-    { icon: Zap,       label: 'Functions', value: stats.total_functions.toLocaleString(), color: '#059669' },
-    { icon: Terminal,  label: 'Lines',     value: stats.total_lines.toLocaleString(),     color: '#f59e0b' },
+    { label: 'Files',     value: stats.total_files.toLocaleString(),     color: '#3b82f6', bg: '#eff6ff' },
+    { label: 'Classes',   value: stats.total_classes.toLocaleString(),   color: '#7c3aed', bg: '#f5f3ff' },
+    { label: 'Functions', value: stats.total_functions.toLocaleString(), color: '#059669', bg: '#ecfdf5' },
+    { label: 'Lines',     value: stats.total_lines.toLocaleString(),     color: '#d97706', bg: '#fffbeb' },
   ];
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 16 }}>
-      {items.map(({ icon: Icon, label, value, color }) => (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 12 }}>
+      {items.map(({ label, value, color, bg }) => (
         <div
           key={label}
           style={{
-            background: '#fafafa',
-            border: '1px solid #eeeeee',
-            borderRadius: 10,
-            padding: '10px 12px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 4,
+            background: bg,
+            border: `1px solid ${color}22`,
+            borderLeft: `3px solid ${color}`,
+            borderRadius: 8,
+            padding: '10px 14px',
           }}
         >
-          <Icon size={14} style={{ color }} />
-          <p style={{ fontSize: 16, fontWeight: 700, color: '#111111', lineHeight: 1 }}>{value}</p>
-          <p style={{ fontSize: 11, color: '#a3a3a3' }}>{label}</p>
+          <p style={{ fontSize: 18, fontWeight: 700, color: '#111111', lineHeight: 1, marginBottom: 4 }}>{value}</p>
+          <p style={{ fontSize: 11, color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
         </div>
       ))}
     </div>
@@ -268,18 +265,25 @@ function RepoCard({
 
   const [owner, repoName] = project.repo_name.split('/');
 
+  // KPI tiles shown at top of card (GST-reconciliation style)
+  const kpiTiles = [
+    { label: 'Stars',        value: (repo?.stars ?? 0).toLocaleString(),        color: '#d97706', bg: '#fffbeb' },
+    { label: 'Forks',        value: (repo?.forks ?? 0).toLocaleString(),        color: '#3b82f6', bg: '#eff6ff' },
+    { label: 'Contributors', value: (repo?.contributors ?? 0).toLocaleString(), color: '#059669', bg: '#ecfdf5' },
+  ];
+
   return (
     <div
       style={{
         background: 'white',
         border: '1px solid #e5e5e5',
         borderRadius: 16,
-        padding: 24,
+        overflow: 'hidden',
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
       }}
       onMouseEnter={e => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)';
+        (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 20px rgba(0,0,0,0.09)';
         (e.currentTarget as HTMLDivElement).style.borderColor = '#d4d4d4';
       }}
       onMouseLeave={e => {
@@ -287,40 +291,53 @@ function RepoCard({
         (e.currentTarget as HTMLDivElement).style.borderColor = '#e5e5e5';
       }}
     >
-      {/* Card Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <GitBranch size={15} style={{ color: '#a3a3a3', flexShrink: 0 }} />
-            <div style={{ overflow: 'hidden' }}>
-              <span style={{ fontSize: 13, color: '#6b6b6b', fontWeight: 400 }}>{owner}/</span>
-              <span style={{ fontSize: 15, fontWeight: 600, color: '#111111' }}>{repoName}</span>
-            </div>
+      {/* KPI Stat Tiles Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${kpiTiles.length}, 1fr)`, borderBottom: '1px solid #f0f0f0' }}>
+        {kpiTiles.map(({ label, value, color, bg }) => (
+          <div
+            key={label}
+            style={{
+              padding: '16px 20px',
+              borderRight: '1px solid #f0f0f0',
+              background: bg,
+            }}
+          >
+            <p style={{ fontSize: 22, fontWeight: 700, color: '#111111', lineHeight: 1, marginBottom: 5 }}>{value}</p>
+            <p style={{ fontSize: 11, color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
           </div>
-          {repo?.description && (
-            <p style={{ fontSize: 13, color: '#6b6b6b', marginLeft: 23, lineHeight: 1.5 }}>{repo.description}</p>
-          )}
-          {repo?.topics && repo.topics.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, marginLeft: 23 }}>
-              {(repo.topics as string[]).slice(0, 5).map(t => (
-                <span key={t} style={{
-                  fontSize: 11, fontWeight: 500,
-                  padding: '2px 8px',
-                  background: '#f4f4f5',
-                  color: '#6b6b6b',
-                  borderRadius: 99,
-                  border: '1px solid #e4e4e7',
-                }}>{t}</span>
-              ))}
-            </div>
-          )}
-        </div>
+        ))}
+      </div>
 
-        {/* Stats + Delete */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 16, flexShrink: 0 }}>
-          <StatBadge icon={Star} value={repo?.stars ?? 0} />
-          <StatBadge icon={GitFork} value={repo?.forks ?? 0} />
-          <StatBadge icon={Users} value={repo?.contributors ?? 0} />
+      {/* Card Body */}
+      <div style={{ padding: 24 }}>
+        {/* Repo Name + Description */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <GitBranch size={15} style={{ color: '#a3a3a3', flexShrink: 0 }} />
+              <div style={{ overflow: 'hidden' }}>
+                <span style={{ fontSize: 13, color: '#6b6b6b', fontWeight: 400 }}>{owner}/</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#111111' }}>{repoName}</span>
+              </div>
+            </div>
+            {repo?.description && (
+              <p style={{ fontSize: 13, color: '#6b6b6b', marginLeft: 23, lineHeight: 1.5 }}>{repo.description}</p>
+            )}
+            {repo?.topics && repo.topics.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, marginLeft: 23 }}>
+                {(repo.topics as string[]).slice(0, 5).map(t => (
+                  <span key={t} style={{
+                    fontSize: 11, fontWeight: 500,
+                    padding: '2px 8px',
+                    background: '#f4f4f5',
+                    color: '#6b6b6b',
+                    borderRadius: 99,
+                    border: '1px solid #e4e4e7',
+                  }}>{t}</span>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={handleDelete}
             disabled={deleting}
@@ -329,6 +346,7 @@ function RepoCard({
               padding: '4px 6px', border: 'none', background: 'transparent',
               color: '#d4d4d4', cursor: 'pointer', borderRadius: 6, display: 'flex',
               alignItems: 'center', transition: 'color 0.15s, background 0.15s',
+              marginLeft: 12, flexShrink: 0,
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#dc2626'; (e.currentTarget as HTMLButtonElement).style.background = '#fef2f2'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#d4d4d4'; (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
@@ -336,7 +354,6 @@ function RepoCard({
             {deleting ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Trash2 size={14} />}
           </button>
         </div>
-      </div>
 
       {/* Charts */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: isParsed && stats ? 0 : 0 }}>
@@ -551,6 +568,7 @@ function RepoCard({
           </button>
         )}
       </div>
+      </div>{/* end card body */}
     </div>
   );
 }
@@ -565,6 +583,7 @@ function StatBadge({ icon: Icon, value }: { icon: any; value: number }) {
     </div>
   );
 }
+// StatBadge kept for potential future use
 
 function ChartPanel({ title, icon: Icon, children }: { title: string; icon: any; children: React.ReactNode }) {
   return (
