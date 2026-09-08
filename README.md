@@ -1,6 +1,6 @@
 # 🎓 RepoTutor
 
-**RepoTutor** is an end-to-end, repository-grounded AI platform for code comprehension, architecture visualization, RAG-assisted chat, fine-tuning dataset generation, and model evaluation.
+RepoTutor is an end-to-end, repository-grounded AI platform for code comprehension, architecture visualization, RAG-assisted chat, fine-tuning dataset generation, and model evaluation.
 
 ---
 
@@ -87,5 +87,4 @@ npm run dev
 ---
 
 ## 📜 License
-
 MIT License — open-source and free to use.
