@@ -19,9 +19,70 @@
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS v4 + `@xyflow/react`
-- **Backend**: FastAPI + Uvicorn + Tree-Sitter + GitPython + HuggingFace PEFT
-- **Database**: Supabase (PostgreSQL + RLS)
+
+## 🗺️ System Architecture
+
+```mermaid
+flowchart LR
+	User[Developer] --> UI[React + TypeScript\nVite frontend]
+	UI --> Auth[Supabase Auth]
+	UI --> API[FastAPI API]
+	API --> Jobs[Background jobs\nCelery / task queue]
+	API --> DB[(Supabase\nPostgreSQL + RLS)]
+	Jobs --> GitHub[GitHub repository]
+	Jobs --> Parser[Tree-Sitter parser]
+	Parser --> DB
+	API --> RAG[RAG and intelligence\nservices]
+	RAG --> DB
+	RAG --> LLM[LLM / embeddings]
+	DB --> UI
+```
+
+## 🔄 Repository Ingestion
+
+```mermaid
+sequenceDiagram
+	actor User as Developer
+	participant UI as React UI
+	participant API as FastAPI
+	participant Queue as Task queue
+	participant Git as GitHub
+	participant Parser as Tree-Sitter
+	participant DB as Supabase
+
+	User->>UI: Register repository
+	UI->>API: POST /api/projects
+	API->>DB: Create project and processing job
+	API-->>UI: Return job status
+	API->>Queue: Start parse task
+	Queue->>Git: Clone repository
+	Git-->>Queue: Source files
+	Queue->>Parser: Parse files and extract symbols
+	Parser-->>Queue: Files, classes, functions
+	Queue->>DB: Store parsed records
+	Queue->>DB: Mark job completed
+	UI->>API: Poll job and project status
+	API-->>UI: Progress and repository metrics
+```
+
+## 🤖 AI And Training Workflow
+
+```mermaid
+flowchart TD
+	Repo[Parsed repository] --> Context[Code context and metadata]
+	Context --> Chat[RAG chat]
+	Chat --> Retrieve[Retrieve relevant code]
+	Retrieve --> Answer[Grounded answer]
+
+	Context --> Dataset[Dataset generator]
+	Dataset --> JSONL[Train and validation JSONL]
+	JSONL --> Tune[LoRA / QLoRA training]
+	Tune --> Evaluate[Model evaluation]
+	Evaluate --> Metrics[BLEU, CodeBLEU, Pass@1]
+	Metrics --> Decision{Promotion criteria met?}
+	Decision -->|Yes| Model[Promoted model]
+	Decision -->|No| Tune
+```
 
 ---
 
